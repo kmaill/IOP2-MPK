@@ -1,0 +1,1 @@
+![diagramKlas](uploads/f9c180ad6be9391de02b3c0f10f38708/diagramKlas.png)
