@@ -1,8 +1,13 @@
 package org.mpk;
 
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public class GPSCoordinates {
     private double latitude;
     private double longitude;
+
+    protected GPSCoordinates() {}
 
     public GPSCoordinates(double latitude, double longitude) {
         this.latitude = latitude;

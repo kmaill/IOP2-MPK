@@ -5,24 +5,30 @@ import java.time.LocalDateTime;
 
 public class Main {
     public static void main(String[] args) {
-
         // singleton i fasada
         SystemMpk system = SystemMpk.getInstance();
         UserFactory userFactory = new UserFactory();
+        
+        System.out.println("--- logowanie przez baze danych ---");
+        User authenticatedUser = system.authenticateUser("admin_db", "haslo123");
 
-        // tworzenie użytkowników (factory)
-        Administrator admin = (Administrator) userFactory.createUser("ADMINISTRATOR", 1, "admin", "admin");
+        Administrator admin = null;
+        if (authenticatedUser instanceof Administrator) {
+            admin = (Administrator) authenticatedUser;
+
+            AdministratorProxy adminProxy = new AdministratorProxy(admin);
+            System.out.println("\n--- Test Proxy przed zalogowaniem ---");
+            adminProxy.manageSchedules();
+
+            admin.login();
+            System.out.println("\n--- Test Proxy po zalogowaniu ---");
+            adminProxy.manageSchedules();
+        } else {
+            System.out.println("nie dziala");
+            return;
+        }
+
         Passenger passenger = (Passenger) userFactory.createUser("PASSENGER", 2, "jan_kowalski", "haslo123");
-
-        // autoryzacja i proxy
-        AdministratorProxy adminProxy = new AdministratorProxy(admin);
-        System.out.println("--- Test Proxy przed zalogowaniem ---");
-        adminProxy.manageSchedules();
-
-        // logowanie przez fasade
-        admin.login();
-        System.out.println("\n--- Test Proxy po zalogowaniu ---");
-        adminProxy.manageSchedules();
 
         // trasa
         GPSCoordinates pos1 = new GPSCoordinates(52.2297, 21.0122);

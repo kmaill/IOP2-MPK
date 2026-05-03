@@ -1,9 +1,20 @@
 package org.mpk;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "bus_stops")
 public class BusStop implements MapElement {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    
     private String name;
+
+    @Embedded
     private GPSCoordinates location;
+
+    protected BusStop() {}
 
     public BusStop(int id, String name, GPSCoordinates location) {
         this.id = id;

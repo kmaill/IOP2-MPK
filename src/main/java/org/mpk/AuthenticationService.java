@@ -1,12 +1,21 @@
 package org.mpk;
 
+import org.mpk.db.UserDao;
+
 public class AuthenticationService {
+    private final UserDao userDao = new UserDao();
+
     public User authenticate(String username, String password) {
-        System.out.println("AuthenticationService: Authenticating user " + username);
+        System.out.println("AuthenticationService: Login - " + username);
         
-        if ("admin".equals(username) && "admin".equals(password)) {
-            return new Administrator(1, username, password);
+        User user = userDao.findByUsername(username);
+        
+        if (user != null && password.equals(user.getPassword())) {
+            System.out.println("Logged in " + username);
+            return user;
         }
-        return new Passenger(2, username, password);
+        
+        System.out.println("Couldnt login:  " + username);
+        return null;
     }
 }

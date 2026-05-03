@@ -1,7 +1,16 @@
 package org.mpk;
 
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
+@Entity
+@DiscriminatorValue("ADMINISTRATOR")
 public class Administrator extends User implements AdminInterface {
     private boolean isLoggedIn = false;
+
+    protected Administrator() {
+        super();
+    }
 
     public Administrator(int id, String username, String password) {
         super(id, username, password);
