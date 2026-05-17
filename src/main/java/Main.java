@@ -1,14 +1,27 @@
+import org.jxmapviewer.JXMapViewer;
+import org.jxmapviewer.OSMTileFactoryInfo;
+import org.jxmapviewer.painter.CompoundPainter;
+import org.jxmapviewer.viewer.*;
 import org.mpk.*;
+import org.mpk.db.UserDao;
 
+import javax.swing.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
+
         // singleton i fasada
         SystemMpk system = SystemMpk.getInstance();
         UserFactory userFactory = new UserFactory();
-        
+
+        UserDao userDao = new UserDao();
+        Administrator adminDb = (Administrator) userFactory.createUser("ADMINISTRATOR", 0, "admin_db", "haslo123");
+        userDao.save(adminDb);
+
         System.out.println("--- logowanie przez baze danych ---");
         User authenticatedUser = system.authenticateUser("admin_db", "haslo123");
 
@@ -75,5 +88,17 @@ public class Main {
         System.out.println("\n--- Usługi Systemowe ---");
         system.monitorTraffic();
         system.sendNotificationToUsers(new Notification(1, "System zostanie wyłączony o 2:00", "INFO", LocalDateTime.now()));
+
+
+
+        // uruchomienie okna
+        SwingUtilities.invokeLater(() -> {
+            JFrame mainWindow = new JFrame("MPK");
+            mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            mainWindow.setSize(1280, 720);
+            mainWindow.add(new SchematicMapStrategy());
+            mainWindow.setVisible(true);
+        });
+
     }
 }
