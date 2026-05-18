@@ -1,3 +1,4 @@
+import com.formdev.flatlaf.FlatLightLaf;
 import org.mpk.*;
 import org.mpk.db.UserDao;
 import org.mpk.panels.LoginPanel;
@@ -11,6 +12,11 @@ public class Main {
     private static JFrame mainWindow;
 
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception ex) {
+            System.err.println("LaF kaput");
+        }
 
         UserFactory userFactory = new UserFactory();
         try {
