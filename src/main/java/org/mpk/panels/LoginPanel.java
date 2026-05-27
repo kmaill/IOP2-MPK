@@ -2,6 +2,7 @@ package org.mpk.panels;
 
 import org.mpk.SystemMpk;
 import org.mpk.User;
+import org.mpk.util.Debug;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +12,8 @@ public class LoginPanel extends JPanel {
     private JPasswordField passwordField;
     private JButton loginButton;
     private JLabel messageLabel;
+
+    private JButton debugButton;
     
     public interface LoginListener {
         void onLoginSuccess(User user);
@@ -35,6 +38,8 @@ public class LoginPanel extends JPanel {
         loginButton = new JButton("Zaloguj");
         formPanel.add(new JLabel());
         formPanel.add(loginButton);
+
+        debugButton = new JButton("== Admin login ==");
         
         messageLabel = new JLabel("", SwingConstants.CENTER);
         messageLabel.setForeground(Color.RED);
@@ -42,10 +47,12 @@ public class LoginPanel extends JPanel {
         JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
         centerPanel.add(formPanel, BorderLayout.CENTER);
         centerPanel.add(messageLabel, BorderLayout.SOUTH);
+        centerPanel.add(debugButton, BorderLayout.SOUTH);
         
         add(centerPanel);
         
         loginButton.addActionListener(e -> attemptLogin());
+        debugButton.addActionListener(e -> Debug.adminLogIn(listener));
     }
 
     private void attemptLogin() {
