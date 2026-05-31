@@ -1,5 +1,8 @@
 import com.formdev.flatlaf.FlatLightLaf;
 import org.mpk.*;
+import org.mpk.db.BusLineDao;
+import org.mpk.db.BusStopDao;
+import org.mpk.db.DepartureDao;
 import org.mpk.db.UserDao;
 import org.mpk.panels.LoginPanel;
 import org.mpk.panels.MapPanel;
@@ -29,8 +32,48 @@ public class Main {
                 User test = userFactory.createUser("PASSENGER", 1, "test", "test123");
                 userDao.save(test);
             }
+
+            BusStopDao busStopDao = new BusStopDao();
+            if (busStopDao.findAll().isEmpty()) {
+                BusLineDao busLineDao = new BusLineDao();
+                DepartureDao departureDao = new DepartureDao();
+
+                BusLine line1 = new BusLine("1", "Linia do centrum");
+                BusLine line2 = new BusLine("2", "Linia na dworzec");
+                busLineDao.save(line1);
+                busLineDao.save(line2);
+
+                BusStop[] initialStops = {
+                        new BusStop("Rynek", new GPSCoordinates(50.8661, 20.6286)),
+                        new BusStop("Dworzec PKP", new GPSCoordinates(50.8606, 20.6238)),
+                        new BusStop("Dworzec PKS", new GPSCoordinates(50.8567, 20.6195)),
+                        new BusStop("Al. Solidarności / Silnica", new GPSCoordinates(50.8738, 20.6372)),
+                        new BusStop("Hala Ludowa", new GPSCoordinates(50.8812, 20.6201)),
+                        new BusStop("os. Szydłówek", new GPSCoordinates(50.8501, 20.6089)),
+                        new BusStop("Czarnów", new GPSCoordinates(50.8934, 20.6455)),
+                        new BusStop("Barańówek", new GPSCoordinates(50.8445, 20.6531)),
+                        new BusStop("Kadzielnia", new GPSCoordinates(50.8598, 20.6401)),
+                        new BusStop("Lotnisko Masłów", new GPSCoordinates(50.8960, 20.6969))
+                };
+
+                java.util.Random rand = new java.util.Random();
+                for (BusStop stop : initialStops) {
+                    busStopDao.save(stop);
+
+                    for (int i = 0; i < 3; i++) {
+                        int hour1 = 12 + rand.nextInt(6);
+                        int min1 = rand.nextInt(60);
+                        departureDao.save(new Departure(line1, stop, java.time.LocalTime.of(hour1, min1)));
+
+                        int hour2 = 12 + rand.nextInt(6);
+                        int min2 = rand.nextInt(60);
+                        departureDao.save(new Departure(line2, stop, java.time.LocalTime.of(hour2, min2)));
+                    }
+                }
+                System.out.println("udalo sie");
+            }
         } catch(Exception e) {
-            System.err.println("Błąd bazy danych: " + e.getMessage());
+            System.err.println("Blad: " + e.getMessage());
             e.printStackTrace();
         }
 

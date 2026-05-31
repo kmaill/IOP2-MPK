@@ -1,6 +1,8 @@
 package org.mpk;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "bus_stops")
@@ -14,6 +16,9 @@ public class BusStop implements MapElement {
     @Embedded
     private GPSCoordinates location;
 
+    @OneToMany(mappedBy = "busStop", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private List<Departure> departures = new ArrayList<>();
+
     protected BusStop() {}
 
     public BusStop(int id, String name, GPSCoordinates location) {
@@ -22,13 +27,14 @@ public class BusStop implements MapElement {
         this.location = location;
     }
 
+    public BusStop(String name, GPSCoordinates location) {
+        this.name = name;
+        this.location = location;
+    }
+
     @Override
     public void display() {
         System.out.println("BusStop: " + name + " (ID: " + id + ")");
-    }
-
-    public Departure[] getNearestDepartures() {
-        return new Departure[0];
     }
 
     public int getId() {
@@ -53,5 +59,13 @@ public class BusStop implements MapElement {
 
     public void setLocation(GPSCoordinates location) {
         this.location = location;
+    }
+
+    public List<Departure> getDepartures() {
+        return departures;
+    }
+
+    public void setDepartures(List<Departure> departures) {
+        this.departures = departures;
     }
 }

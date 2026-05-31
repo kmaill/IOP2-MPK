@@ -1,12 +1,23 @@
 package org.mpk;
 
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Entity
+@Table(name = "bus_lines")
 public class BusLine implements Subject {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
     private String lineNumber;
     private String description;
+
+    @Transient
     private List<Observer> observers = new ArrayList<>();
+
+    protected BusLine() {}
 
     public BusLine(String lineNumber, String description) {
         this.lineNumber = lineNumber;
@@ -45,6 +56,14 @@ public class BusLine implements Subject {
 
     public Bus[] getActiveBuses() {
         return new Bus[0];
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getLineNumber() {

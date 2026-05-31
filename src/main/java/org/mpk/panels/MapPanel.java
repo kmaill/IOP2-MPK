@@ -7,15 +7,17 @@ import org.jxmapviewer.input.PanMouseInputListener;
 import org.jxmapviewer.input.ZoomMouseWheelListenerCursor;
 import org.jxmapviewer.painter.CompoundPainter;
 import org.jxmapviewer.viewer.*;
-import org.mpk.GPSCoordinates;
+import org.mpk.BusStop;
+import org.mpk.Departure;
+import org.mpk.db.BusStopDao;
 import org.mpk.util.Osrm;
 import org.mpk.util.RoutePainter;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +27,10 @@ import java.util.Set;
 public class MapPanel extends JPanel {
     JSONArray selectedRoute = null;
     public boolean tempSwitch = false;
+
+    private JPanel sidePanel;
+    private JLabel stopNameLabel;
+    private JTextArea scheduleArea;
 
     public MapPanel(Runnable onBack) {
         System.setProperty("http.agent", "Mozilla/5.0 JXMapViewer2");
@@ -37,6 +43,12 @@ public class MapPanel extends JPanel {
         backButton.addActionListener(e -> onBack.run());
         topPanel.add(backButton);
         add(topPanel, BorderLayout.NORTH);
+
+        JPanel mapContainer = new JPanel(new BorderLayout());
+        add(mapContainer, BorderLayout.CENTER);
+
+        createSidePanel();
+        mapContainer.add(sidePanel, BorderLayout.EAST);
 
         //ustawianie mapy
         JXMapViewer mapViewer = new JXMapViewer();
@@ -55,7 +67,6 @@ public class MapPanel extends JPanel {
         };
 
         DefaultTileFactory tileFactory = new DefaultTileFactory(tileFactoryInfo);
-
         tileFactory.setThreadPoolSize(4);
         mapViewer.setTileFactory(tileFactory);
 
@@ -65,59 +76,54 @@ public class MapPanel extends JPanel {
         mapViewer.setFocusable(true);
         mapViewer.requestFocusInWindow();
 
-        Set<Waypoint> busStops = new HashSet<>();
+        Set<BusStopWaypoint> busStops = new HashSet<>();
 
-        busStops.add(new DefaultWaypoint(50.8661, 20.6286)); // Rynek
-        busStops.add(new DefaultWaypoint(50.8606, 20.6238)); // Dworzec PKP
-        busStops.add(new DefaultWaypoint(50.8567, 20.6195)); // Dworzec PKS
-        busStops.add(new DefaultWaypoint(50.8738, 20.6372)); // Al. Solidarności / Silnica
-        busStops.add(new DefaultWaypoint(50.8812, 20.6201)); // Hala Ludowa
-        busStops.add(new DefaultWaypoint(50.8501, 20.6089)); // os. Szydłówek
-        busStops.add(new DefaultWaypoint(50.8934, 20.6455)); // Czarnów
-        busStops.add(new DefaultWaypoint(50.8445, 20.6531)); // Barańówek
-        busStops.add(new DefaultWaypoint(50.8598, 20.6401)); // Kadzielnia
-        busStops.add(new DefaultWaypoint(50.8960, 20.6969)); // Lotnisko Masłów
+        BusStopDao busStopDao = new BusStopDao();
+        java.util.List<BusStop> dbStops = busStopDao.findAll();
+        
+        for(BusStop stop : dbStops) {
+            busStops.add(new BusStopWaypoint(stop, new GeoPosition(stop.getLocation().getLatitude(), stop.getLocation().getLongitude())));
+        }
 
+        BusStopWaypointPainter waypointPainter = new BusStopWaypointPainter();
+        waypointPainter.setWaypoints(busStops);
 
-
-        WaypointPainter<Waypoint> painter = new WaypointPainter<>();
-        painter.setWaypoints(busStops);
-        mapViewer.setOverlayPainter(new RoutePainter(selectedRoute));
-
-        CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(painter, new RoutePainter(selectedRoute));
-
+        CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter);
         mapViewer.setOverlayPainter(mainPainter);
 
-        mapViewer.addMouseListener(new PanMouseInputListener(mapViewer) {
+        PanMouseInputListener panListener = new PanMouseInputListener(mapViewer) {
             public ArrayList<GeoPosition> points = new ArrayList<>();
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 mapViewer.requestFocusInWindow();
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    Point clickPoint = e.getPoint();
+                    Rectangle bounds = mapViewer.getViewportBounds();
+
+                    boolean stopClicked = false;
+                    for (BusStopWaypoint w : busStops) {
+                        Point2D p = mapViewer.getTileFactory().geoToPixel(w.getPosition(), mapViewer.getZoom());
+                        Point stopPoint = new Point((int) (p.getX() - bounds.getX()), (int) (p.getY() - bounds.getY()));
+                        // jak jest <= 15 pikseli to wyswietla
+                        if (clickPoint.distance(stopPoint) <= 15) {
+                            showScheduleInSidePanel(w.getBusStop());
+                            stopClicked = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!stopClicked && sidePanel.isVisible()) {
+                        sidePanel.setVisible(false);
+                        revalidate();
+                        repaint();
+                    }
+                }
             }
 
             @Override
             public void mousePressed(MouseEvent evt) {
                 super.mousePressed(evt);
-
-                Set<Waypoint> busStops = new HashSet<>();
-
-                busStops.add(new DefaultWaypoint(50.8661, 20.6286)); // Rynek
-                busStops.add(new DefaultWaypoint(50.8606, 20.6238)); // Dworzec PKP
-                busStops.add(new DefaultWaypoint(50.8567, 20.6195)); // Dworzec PKS
-                busStops.add(new DefaultWaypoint(50.8738, 20.6372)); // Al. Solidarności / Silnica
-                busStops.add(new DefaultWaypoint(50.8812, 20.6201)); // Hala Ludowa
-                busStops.add(new DefaultWaypoint(50.8501, 20.6089)); // os. Szydłówek
-                busStops.add(new DefaultWaypoint(50.8934, 20.6455)); // Czarnów
-                busStops.add(new DefaultWaypoint(50.8445, 20.6531)); // Barańówek
-                busStops.add(new DefaultWaypoint(50.8598, 20.6401)); // Kadzielnia
-                busStops.add(new DefaultWaypoint(50.8960, 20.6969)); // Lotnisko Masłów
-
-
-
-                WaypointPainter<Waypoint> waypointPainter = new WaypointPainter<>();
-                waypointPainter.setWaypoints(busStops);
-
 
                 if(SwingUtilities.isRightMouseButton(evt)) {
                     System.out.printf("%d,%d%n",evt.getX(),evt.getY());
@@ -132,11 +138,11 @@ public class MapPanel extends JPanel {
                             points.add(mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY())));
                             try {
                                 selectedRoute = Osrm.getRoutePointsJSON(points);
-                                CompoundPainter mainPainter = new CompoundPainter(
+                                CompoundPainter<JXMapViewer> newPainter = new CompoundPainter<>(
                                         new RoutePainter(selectedRoute),
                                         waypointPainter
                                 );
-                                mapViewer.setOverlayPainter(mainPainter);
+                                mapViewer.setOverlayPainter(newPainter);
                                 repaint();
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
@@ -149,8 +155,9 @@ public class MapPanel extends JPanel {
                     //tempSwitch = !tempSwitch;
                 }
             }
-        });
-        mapViewer.addMouseMotionListener(new PanMouseInputListener(mapViewer));
+        };
+        mapViewer.addMouseListener(panListener);
+        mapViewer.addMouseMotionListener(panListener);
         mapViewer.addMouseWheelListener(new ZoomMouseWheelListenerCursor(mapViewer));
         mapViewer.addKeyListener(new PanKeyListener(mapViewer) {
             @Override
@@ -158,7 +165,6 @@ public class MapPanel extends JPanel {
                 // Temp
                 // System.out.println(e.getKeyCode());
                 super.keyPressed(e);
-
             }
             @Override
             public void keyReleased(KeyEvent e) {
@@ -166,8 +172,85 @@ public class MapPanel extends JPanel {
             }
         });
 
-        add(mapViewer, BorderLayout.CENTER);
+        mapContainer.add(mapViewer, BorderLayout.CENTER);
     }
 
+    // panel boczny
+    private void createSidePanel() {
+        sidePanel = new JPanel();
+        sidePanel.setLayout(new BorderLayout());
+        sidePanel.setPreferredSize(new Dimension(300, 0));
+        sidePanel.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY));
+        sidePanel.setBackground(Color.WHITE);
+        sidePanel.setVisible(false);
 
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        contentPanel.setBackground(Color.WHITE);
+
+        stopNameLabel = new JLabel("Nazwa Przystanku");
+        stopNameLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        stopNameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        scheduleArea = new JTextArea();
+        scheduleArea.setEditable(false);
+        scheduleArea.setOpaque(false);
+        scheduleArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        scheduleArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scheduleArea.setMargin(new Insets(10, 0, 0, 0));
+
+        JButton closeButton = new JButton("Zamknij (X)");
+        closeButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        closeButton.setFocusPainted(false);
+        closeButton.addActionListener(e -> {
+            sidePanel.setVisible(false);
+            revalidate();
+            repaint();
+        });
+
+        contentPanel.add(stopNameLabel);
+        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(scheduleArea);
+        contentPanel.add(Box.createVerticalGlue());
+        contentPanel.add(closeButton);
+
+        sidePanel.add(contentPanel, BorderLayout.CENTER);
+    }
+
+    private void showScheduleInSidePanel(BusStop busStop) {
+        stopNameLabel.setText(busStop.getName());
+        
+        StringBuilder sb = new StringBuilder("Najbliższe odjazdy:\n\n");
+        
+        java.util.List<Departure> departures = busStop.getDepartures();
+        if(departures == null || departures.isEmpty()) {
+            sb.append("brak odjazdów.\n");
+        } else {
+            java.util.Map<String, java.util.List<java.time.LocalTime>> departuresByLine = new java.util.TreeMap<>();
+            for(Departure d : departures) {
+                if(d.getLine() != null) {
+                    departuresByLine.computeIfAbsent(d.getLine().getLineNumber(), k -> new java.util.ArrayList<>()).add(d.getDepartureTime());
+                }
+            }
+            
+            for(java.util.Map.Entry<String, java.util.List<java.time.LocalTime>> entry : departuresByLine.entrySet()) {
+                sb.append("Linia ").append(entry.getKey()).append(":\n   ");
+                entry.getValue().sort(java.time.LocalTime::compareTo);
+                for(int i = 0; i < entry.getValue().size(); i++) {
+                    sb.append(entry.getValue().get(i).toString());
+                    if(i < entry.getValue().size() - 1) sb.append(", ");
+                }
+                sb.append("\n\n");
+            }
+        }
+                
+        scheduleArea.setText(sb.toString());
+        
+        if (!sidePanel.isVisible()) {
+            sidePanel.setVisible(true);
+            revalidate();
+            repaint();
+        }
+    }
 }
