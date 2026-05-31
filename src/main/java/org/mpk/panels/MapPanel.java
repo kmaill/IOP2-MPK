@@ -18,11 +18,13 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 public class MapPanel extends JPanel {
     JSONArray selectedRoute = null;
+    public boolean tempSwitch = false;
 
     public MapPanel(Runnable onBack) {
         System.setProperty("http.agent", "Mozilla/5.0 JXMapViewer2");
@@ -87,8 +89,7 @@ public class MapPanel extends JPanel {
         mapViewer.setOverlayPainter(mainPainter);
 
         mapViewer.addMouseListener(new PanMouseInputListener(mapViewer) {
-            public boolean tempSwitch = false;
-            public GeoPosition startPos, destPos;
+            public ArrayList<GeoPosition> points = new ArrayList<>();
 
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -98,25 +99,54 @@ public class MapPanel extends JPanel {
             @Override
             public void mousePressed(MouseEvent evt) {
                 super.mousePressed(evt);
+
+                Set<Waypoint> busStops = new HashSet<>();
+
+                busStops.add(new DefaultWaypoint(50.8661, 20.6286)); // Rynek
+                busStops.add(new DefaultWaypoint(50.8606, 20.6238)); // Dworzec PKP
+                busStops.add(new DefaultWaypoint(50.8567, 20.6195)); // Dworzec PKS
+                busStops.add(new DefaultWaypoint(50.8738, 20.6372)); // Al. Solidarności / Silnica
+                busStops.add(new DefaultWaypoint(50.8812, 20.6201)); // Hala Ludowa
+                busStops.add(new DefaultWaypoint(50.8501, 20.6089)); // os. Szydłówek
+                busStops.add(new DefaultWaypoint(50.8934, 20.6455)); // Czarnów
+                busStops.add(new DefaultWaypoint(50.8445, 20.6531)); // Barańówek
+                busStops.add(new DefaultWaypoint(50.8598, 20.6401)); // Kadzielnia
+                busStops.add(new DefaultWaypoint(50.8960, 20.6969)); // Lotnisko Masłów
+
+
+
+                WaypointPainter<Waypoint> waypointPainter = new WaypointPainter<>();
+                waypointPainter.setWaypoints(busStops);
+
+
                 if(SwingUtilities.isRightMouseButton(evt)) {
                     System.out.printf("%d,%d%n",evt.getX(),evt.getY());
 
-
-                    if(!tempSwitch) {
-                        startPos = mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY()));
-                        System.out.printf("%f,%f%n",startPos.getLatitude(), startPos.getLongitude());
+                    if(evt.isShiftDown()) {
+                        points = new ArrayList<>();
+                        points.add(mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY())));
+//                        startPos = mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY()));
+//                        System.out.printf("%f,%f%n",startPos.getLatitude(), startPos.getLongitude());
                     } else {
-                        destPos = mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY()));
-                        System.out.printf("%f,%f%n",destPos.getLatitude(), destPos.getLongitude());
-                        try {
-                            selectedRoute = Osrm.getRoutePointsJSON(startPos, destPos);
-                            mapViewer.setOverlayPainter(new RoutePainter(selectedRoute));
-                            repaint();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                        if(!points.isEmpty()) {
+                            points.add(mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY())));
+                            try {
+                                selectedRoute = Osrm.getRoutePointsJSON(points);
+                                CompoundPainter mainPainter = new CompoundPainter(
+                                        new RoutePainter(selectedRoute),
+                                        waypointPainter
+                                );
+                                mapViewer.setOverlayPainter(mainPainter);
+                                repaint();
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
+//                        destPos = mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY()));
+//                        System.out.printf("%f,%f%n",destPos.getLatitude(), destPos.getLongitude());
+
                     }
-                    tempSwitch = !tempSwitch;
+                    //tempSwitch = !tempSwitch;
                 }
             }
         });
@@ -126,9 +156,13 @@ public class MapPanel extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 // Temp
-                System.out.println(e.getKeyCode());
+                // System.out.println(e.getKeyCode());
                 super.keyPressed(e);
 
+            }
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
             }
         });
 

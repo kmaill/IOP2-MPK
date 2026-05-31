@@ -27,12 +27,12 @@ public class RoutePainter implements Painter<JXMapViewer> {
                             points.getJSONArray(i).getDouble(1),
                             points.getJSONArray(i).getDouble(0)))
                     );
-            System.out.printf("%f, %f, %f, %,f", points.getJSONArray(i-1).getDouble(0), points.getJSONArray(i-1).getDouble(1),
-                    points.getJSONArray(i).getDouble(0), points.getJSONArray(i).getDouble(1));
+            //System.out.printf("%f, %f, %f, %,f", points.getJSONArray(i-1).getDouble(0), points.getJSONArray(i-1).getDouble(1),
+            //        points.getJSONArray(i).getDouble(0), points.getJSONArray(i).getDouble(1));
             g2D.setColor(Color.BLUE);
             g2D.setStroke(new BasicStroke(3));
             g2D.draw(line);
-            System.out.println("123");
+            //System.out.println("123");
         }
     }
 
