@@ -32,6 +32,8 @@ public class MapPanel extends JPanel {
     private JLabel stopNameLabel;
     private JTextArea scheduleArea;
 
+    public static final String busIcon = "\uD83D\uDE8C";
+
     public MapPanel(Runnable onBack) {
         System.setProperty("http.agent", "Mozilla/5.0 JXMapViewer2");
 
@@ -85,7 +87,10 @@ public class MapPanel extends JPanel {
             busStops.add(new BusStopWaypoint(stop, new GeoPosition(stop.getLocation().getLatitude(), stop.getLocation().getLongitude())));
         }
 
-        BusStopWaypointPainter waypointPainter = new BusStopWaypointPainter();
+        CustomWaypointPainter waypointPainter = new CustomWaypointPainter(new Color(30, 144, 255),
+                //busIcon
+                "P"
+        );
         waypointPainter.setWaypoints(busStops);
 
         CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter);
@@ -163,7 +168,7 @@ public class MapPanel extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 // Temp
-                // System.out.println(e.getKeyCode());
+                System.out.println(e.getKeyCode());
                 super.keyPressed(e);
             }
             @Override
