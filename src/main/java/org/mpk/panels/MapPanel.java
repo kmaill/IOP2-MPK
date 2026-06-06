@@ -12,6 +12,7 @@ import org.mpk.Departure;
 import org.mpk.db.BusStopDao;
 import org.mpk.util.Osrm;
 import org.mpk.util.RoutePainter;
+import org.mpk.util.animationUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -31,6 +32,8 @@ public class MapPanel extends JPanel {
     private JPanel sidePanel;
     private JLabel stopNameLabel;
     private JTextArea scheduleArea;
+
+    private final BusWaypointPainter busPainter;
 
     public static final String busIcon = "\uD83D\uDE8C";
 
@@ -91,9 +94,12 @@ public class MapPanel extends JPanel {
                 //busIcon
                 "P"
         );
+
         waypointPainter.setWaypoints(busStops);
 
-        CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter);
+        busPainter = new BusWaypointPainter(Color.ORANGE, busIcon, mapViewer, new DefaultWaypoint(50.8687, 20.6286));
+
+        CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter, busPainter);
         mapViewer.setOverlayPainter(mainPainter);
 
         PanMouseInputListener panListener = new PanMouseInputListener(mapViewer) {
@@ -129,10 +135,14 @@ public class MapPanel extends JPanel {
             @Override
             public void mousePressed(MouseEvent evt) {
                 super.mousePressed(evt);
+                System.out.println(evt.getX() + ", " + evt.getY());
 
                 if(SwingUtilities.isRightMouseButton(evt)) {
                     System.out.printf("%d,%d%n",evt.getX(),evt.getY());
 
+                    if(evt.isAltDown()) {
+                        busPainter.moveTo(mapViewer.convertPointToGeoPosition(new Point(evt.getX(), evt.getY())));
+                    }
                     if(evt.isShiftDown()) {
                         points = new ArrayList<>();
                         points.add(mapViewer.convertPointToGeoPosition(new Point(evt.getX(),evt.getY())));
@@ -145,7 +155,8 @@ public class MapPanel extends JPanel {
                                 selectedRoute = Osrm.getRoutePointsJSON(points);
                                 CompoundPainter<JXMapViewer> newPainter = new CompoundPainter<>(
                                         new RoutePainter(selectedRoute),
-                                        waypointPainter
+                                        waypointPainter,
+                                        busPainter
                                 );
                                 mapViewer.setOverlayPainter(newPainter);
                                 repaint();
@@ -257,5 +268,14 @@ public class MapPanel extends JPanel {
             revalidate();
             repaint();
         }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+//        if(tempSwitch) {
+//            animationUtil.travelToPoint((Graphics2D) g, 0, 0 , getMousePosition().x, getMousePosition().y, 10);
+//            tempSwitch = false;
+//        }
     }
 }
