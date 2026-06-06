@@ -7,6 +7,7 @@ import org.mpk.db.UserDao;
 import org.mpk.panels.LoginPanel;
 import org.mpk.panels.MapPanel;
 import org.mpk.panels.MenuPanel;
+import org.mpk.panels.SchedulePanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -115,7 +116,7 @@ public class Main {
 
             @Override
             public void onOpenSchedules() {
-                JOptionPane.showMessageDialog(mainWindow, "Rozkład jazdy: jazda z");
+                showPanel(new SchedulePanel(() -> showMenuPanel(user)));
             }
 
             @Override
