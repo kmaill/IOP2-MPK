@@ -141,7 +141,12 @@ public class MapPanel extends JPanel {
                     System.out.printf("%d,%d%n",evt.getX(),evt.getY());
 
                     if(evt.isAltDown()) {
-                        busPainter.moveTo(mapViewer.convertPointToGeoPosition(new Point(evt.getX(), evt.getY())));
+                        //busPainter.moveTo(mapViewer.convertPointToGeoPosition(new Point(evt.getX(), evt.getY())));
+                        try {
+                            animationUtil.travelToPoint(mapViewer.convertPointToGeoPosition(new Point(evt.getX(), evt.getY())), busPainter);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                     if(evt.isShiftDown()) {
                         points = new ArrayList<>();

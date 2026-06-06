@@ -22,6 +22,7 @@ public class Osrm {
     private static JSONArray routePoints = null;
     private static final List<GeoPosition> routePointsGeo = new ArrayList<>();
 
+    private static JSONArray routeSpeeds = null;
     private static double routeDuration = -1.f;
 
 //    public static void updateRoute(GeoPosition startPoint, GeoPosition endPoint) throws IOException {
@@ -84,8 +85,17 @@ public class Osrm {
                 .getJSONObject(0)
                 .getDouble("duration");
 
+        JSONArray durations = tempJson
+                .getJSONArray("routes")
+                .getJSONObject(0)
+                .getJSONArray("legs")
+                .getJSONObject(0)
+                .getJSONObject("annotation")
+                .getJSONArray("speed");
+
         routePoints = resPoints;
         routeDuration = duration;
+        routeSpeeds = durations;
 
         routePointsGeo.clear();
 
@@ -133,5 +143,9 @@ public class Osrm {
             updateRoute(inputPoints);
         }
         return routeDuration;
+    }
+
+    public static JSONArray getRouteSpeedsArray() {
+        return routeSpeeds;
     }
 }
