@@ -29,7 +29,7 @@ public class BusWaypointPainter extends CustomWaypointPainter {
         super(waypointColor, waypointSymbol);
         i = 1;
         timer = new Timer(1, e -> {
-            if(Math.abs(latitude - latitudeDest) <= 0.0001f && Math.abs(longitude - longitudeDest) <= 0.0001f) {
+            if(Math.abs(latitude - latitudeDest) <= 0.0001f || Math.abs(longitude - longitudeDest) <= 0.0001f) {
                 if(i == points.length()-1) {
                     timer.stop();
                 } else {
@@ -43,9 +43,10 @@ public class BusWaypointPainter extends CustomWaypointPainter {
                 }
             } else {
                 //double length = Math.sqrt(Math.pow(latitudeDest - latitudeSrc, 2) + Math.pow(longitudeDest - longitudeSrc, 2));
-                latitude = latitude + ((latitudeDest - latitudeSrc) / (speeds.getDouble(i) * 0.8f));
-                longitude = longitude + ((longitudeDest - longitudeSrc) / (speeds.getDouble(i) * 0.8f));
-                System.out.println(speeds.getDouble(i));
+                System.out.println(i);
+                latitude = latitude + ((latitudeDest - latitudeSrc) / (speeds.getDouble(i-1) * .8f));
+                longitude = longitude + ((longitudeDest - longitudeSrc) / (speeds.getDouble(i-1) * .8f));
+
             }
 
             map.repaint();
