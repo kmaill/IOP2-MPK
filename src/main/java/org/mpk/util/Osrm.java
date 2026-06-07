@@ -78,24 +78,22 @@ public class Osrm {
                 .getJSONObject("geometry")
                 .getJSONArray("coordinates");
 
-        double duration = tempJson
-                .getJSONArray("routes")
-                .getJSONObject(0)
-                .getJSONArray("legs")
-                .getJSONObject(0)
-                .getDouble("duration");
+        JSONArray routes = tempJson.getJSONArray("routes");
+        JSONArray legs = routes.getJSONObject(0).getJSONArray("legs");
+        
+        double duration = routes.getJSONObject(0).getDouble("duration");
 
-        JSONArray durations = tempJson
-                .getJSONArray("routes")
-                .getJSONObject(0)
-                .getJSONArray("legs")
-                .getJSONObject(0)
-                .getJSONObject("annotation")
-                .getJSONArray("speed");
+        JSONArray allSpeeds = new JSONArray();
+        for (int i=0; i<legs.length(); i++) {
+            JSONArray legSpeeds = legs.getJSONObject(i).getJSONObject("annotation").getJSONArray("speed");
+            for (int j=0; j<legSpeeds.length(); j++) {
+                allSpeeds.put(legSpeeds.getDouble(j));
+            }
+        }
 
         routePoints = resPoints;
         routeDuration = duration;
-        routeSpeeds = durations;
+        routeSpeeds = allSpeeds;
 
         routePointsGeo.clear();
 

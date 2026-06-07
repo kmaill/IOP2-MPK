@@ -2,7 +2,6 @@ package org.mpk.panels;
 
 import org.json.JSONArray;
 import org.jxmapviewer.JXMapViewer;
-import org.jxmapviewer.viewer.DefaultWaypoint;
 import org.jxmapviewer.viewer.GeoPosition;
 
 import javax.swing.*;
@@ -19,34 +18,40 @@ public class BusWaypointPainter extends CustomWaypointPainter {
     private double longitudeSrc;
     private Timer timer;
     private JXMapViewer map;
-    private DefaultWaypoint waypoint;
+    private BusWaypoint waypoint;
     private JSONArray points;
     private JSONArray speeds;
     private int i;
 
 
-    BusWaypointPainter(Color waypointColor, String waypointSymbol, JXMapViewer map, DefaultWaypoint waypoint) {
+    BusWaypointPainter(Color waypointColor, String waypointSymbol, JXMapViewer map, BusWaypoint waypoint) {
         super(waypointColor, waypointSymbol);
         i = 1;
         timer = new Timer(1, e -> {
-            if(Math.abs(latitude - latitudeDest) <= 0.0001f || Math.abs(longitude - longitudeDest) <= 0.0001f) {
+            double stepLat = (latitudeDest - latitudeSrc) / (speeds.getDouble(i-1) * 5.0f);
+            double stepLon = (longitudeDest - longitudeSrc) / (speeds.getDouble(i-1) * 5.0f);
+            // ????
+            //System.out.println("stepLon: " + stepLon + "stepLat: " + stepLat);
+//            if(Math.abs(latitude - latitudeDest) <= 0.0001f || Math.abs(longitude - longitudeDest) <= 0.0001f) {
+            if(Math.abs(latitude - latitudeDest) <= Math.abs(stepLat) && Math.abs(longitude - longitudeDest) <= Math.abs(stepLon)) {
                 if(i == points.length()-1) {
-                    timer.stop();
+                    i = 1;
                 } else {
                     i++;
-                    latitudeSrc = points.getJSONArray(i-1).getDouble(1);
-                    longitudeSrc = points.getJSONArray(i-1).getDouble(0);
-                    latitudeDest = points.getJSONArray(i).getDouble(1);
-                    longitudeDest = points.getJSONArray(i).getDouble(0);
-                    latitude = latitudeSrc;
-                    longitude = longitudeSrc;
                 }
+                latitudeSrc = points.getJSONArray(i-1).getDouble(1);
+                longitudeSrc = points.getJSONArray(i-1).getDouble(0);
+                latitudeDest = points.getJSONArray(i).getDouble(1);
+                longitudeDest = points.getJSONArray(i).getDouble(0);
+                latitude = latitudeSrc;
+                longitude = longitudeSrc;
             } else {
                 //double length = Math.sqrt(Math.pow(latitudeDest - latitudeSrc, 2) + Math.pow(longitudeDest - longitudeSrc, 2));
-                System.out.println(i);
-                latitude = latitude + ((latitudeDest - latitudeSrc) / (speeds.getDouble(i-1) * .8f));
-                longitude = longitude + ((longitudeDest - longitudeSrc) / (speeds.getDouble(i-1) * .8f));
-
+                //System.out.println(i);
+                //latitude = latitude + ((latitudeDest - latitudeSrc) / (speeds.getDouble(i-1) * .8f));
+                //longitude = longitude + ((longitudeDest - longitudeSrc) / (speeds.getDouble(i-1) * .8f));
+                latitude += stepLat;
+                longitude += stepLon;
             }
 
             map.repaint();
@@ -74,12 +79,12 @@ public class BusWaypointPainter extends CustomWaypointPainter {
         }
     }
 
-    public void setWaypoint(DefaultWaypoint waypoint) {
+    public void setWaypoint(BusWaypoint waypoint) {
         this.waypoint = waypoint;
         setWaypoints(Set.of(waypoint));
     }
 
-    public DefaultWaypoint getWaypoint() {
+    public BusWaypoint getWaypoint() {
         return waypoint;
     }
 

@@ -7,8 +7,8 @@ import org.jxmapviewer.input.PanMouseInputListener;
 import org.jxmapviewer.input.ZoomMouseWheelListenerCursor;
 import org.jxmapviewer.painter.CompoundPainter;
 import org.jxmapviewer.viewer.*;
-import org.mpk.BusStop;
-import org.mpk.Departure;
+import org.mpk.*;
+import org.mpk.db.BusStopDao;
 import org.mpk.db.BusStopDao;
 import org.mpk.util.Osrm;
 import org.mpk.util.RoutePainter;
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.List;
 
 public class MapPanel extends JPanel {
     JSONArray selectedRoute = null;
@@ -84,7 +85,7 @@ public class MapPanel extends JPanel {
         Set<BusStopWaypoint> busStops = new HashSet<>();
 
         BusStopDao busStopDao = new BusStopDao();
-        java.util.List<BusStop> dbStops = busStopDao.findAll();
+        List<BusStop> dbStops = busStopDao.findAll();
         
         for(BusStop stop : dbStops) {
             busStops.add(new BusStopWaypoint(stop, new GeoPosition(stop.getLocation().getLatitude(), stop.getLocation().getLongitude())));
@@ -97,7 +98,25 @@ public class MapPanel extends JPanel {
 
         waypointPainter.setWaypoints(busStops);
 
-        busPainter = new BusWaypointPainter(Color.ORANGE, busIcon, mapViewer, new DefaultWaypoint(50.8687, 20.6286));
+        Bus mockBus = new Bus("A104", new BusLine("2", "Linia na dworzec"), "Dworzec PKP", 4, new GPSCoordinates(50.8687, 20.6286), "W Trasie");
+        busPainter = new BusWaypointPainter(Color.ORANGE, busIcon, mapViewer, new BusWaypoint(mockBus, new GeoPosition(50.8687, 20.6286)));
+
+        List<GeoPosition> routeStops = new ArrayList<>();
+        for(int i=0; i<dbStops.size(); i++) {
+            BusStop temp = dbStops.get(i);
+
+            routeStops.add(new GeoPosition(temp.getLocation().getLatitude(), temp.getLocation().getLongitude()));
+        }
+        // zapetlenie
+        routeStops.add(new GeoPosition(dbStops.getFirst().getLocation().getLatitude(), dbStops.getFirst().getLocation().getLongitude()));
+
+        try {
+            JSONArray routeJson = Osrm.getRoutePointsJSON(routeStops);
+            JSONArray speedsJson = Osrm.getRouteSpeedsArray();
+            busPainter.moveTo(routeJson, speedsJson);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter, busPainter);
         mapViewer.setOverlayPainter(mainPainter);
@@ -113,6 +132,16 @@ public class MapPanel extends JPanel {
                     Rectangle bounds = mapViewer.getViewportBounds();
 
                     boolean stopClicked = false;
+                    
+                    // autobus klik
+                    Point2D busP = mapViewer.getTileFactory().geoToPixel(busPainter.getWaypoint().getPosition(), mapViewer.getZoom());
+                    Point busPoint = new Point((int) (busP.getX() - bounds.getX()), (int) (busP.getY() - bounds.getY()));
+                    if (clickPoint.distance(busPoint) <= 20) {
+                        showBusDetailsInSidePanel(busPainter.getWaypoint().getBus());
+                        return;
+                    }
+
+                    // przystanek klik
                     for (BusStopWaypoint w : busStops) {
                         Point2D p = mapViewer.getTileFactory().geoToPixel(w.getPosition(), mapViewer.getZoom());
                         Point stopPoint = new Point((int) (p.getX() - bounds.getX()), (int) (p.getY() - bounds.getY()));
@@ -264,6 +293,30 @@ public class MapPanel extends JPanel {
                 }
                 sb.append("\n\n");
             }
+        }
+                
+        scheduleArea.setText(sb.toString());
+        
+        if (!sidePanel.isVisible()) {
+            sidePanel.setVisible(true);
+            revalidate();
+            repaint();
+        }
+    }
+
+    private void showBusDetailsInSidePanel(Bus bus) {
+        stopNameLabel.setText("Autobus nr " + bus.getId());
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("Szczegóły pojazdu:\n\n");
+        sb.append("Linia: ").append(bus.getLine().getLineNumber()).append("\n");
+        sb.append("Zmierza do: ").append(bus.getDestination()).append("\n");
+        sb.append("Stan: ").append(bus.getStatus()).append("\n\n");
+        
+        if (bus.getDelayMinutes() > 0) {
+            sb.append("Opóźnienie: ").append(bus.getDelayMinutes()).append(" min\n");
+        } else {
+            sb.append("Jedzie punktualnie\n");
         }
                 
         scheduleArea.setText(sb.toString());
