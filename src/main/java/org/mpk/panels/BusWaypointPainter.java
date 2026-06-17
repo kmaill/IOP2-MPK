@@ -32,6 +32,7 @@ public class BusWaypointPainter extends CustomWaypointPainter {
             double stepLon = (longitudeDest - longitudeSrc) / (speeds.getDouble(i-1) * 5.0f);
             // ????
             //System.out.println("stepLon: " + stepLon + "stepLat: " + stepLat);
+//            System.out.println("Wyciek pamieci test");
 //            if(Math.abs(latitude - latitudeDest) <= 0.0001f || Math.abs(longitude - longitudeDest) <= 0.0001f) {
             if(Math.abs(latitude - latitudeDest) <= Math.abs(stepLat) && Math.abs(longitude - longitudeDest) <= Math.abs(stepLon)) {
                 if(i == points.length()-1) {
@@ -86,6 +87,13 @@ public class BusWaypointPainter extends CustomWaypointPainter {
 
     public BusWaypoint getWaypoint() {
         return waypoint;
+    }
+
+    // wyciek pamieci naprawiony
+    public void stopTimer() {
+        if (timer != null && timer.isRunning()) {
+            timer.stop();
+        }
     }
 
     @Override

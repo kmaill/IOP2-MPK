@@ -10,6 +10,7 @@ import org.jxmapviewer.viewer.*;
 import org.mpk.*;
 import org.mpk.db.BusStopDao;
 import org.mpk.db.BusStopDao;
+import org.mpk.db.DepartureDao;
 import org.mpk.util.Osrm;
 import org.mpk.util.RoutePainter;
 import org.mpk.util.animationUtil;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MapPanel extends JPanel {
     JSONArray selectedRoute = null;
@@ -35,6 +37,8 @@ public class MapPanel extends JPanel {
     private JTextArea scheduleArea;
 
     private final BusWaypointPainter busPainter;
+    private Timer trackingTimer;
+    private Bus currentTrackedBus = null;
 
     public static final String busIcon = "\uD83D\uDE8C";
 
@@ -46,7 +50,6 @@ public class MapPanel extends JPanel {
         // powrot do menu
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton backButton = new JButton("Wróć do Menu");
-        backButton.addActionListener(e -> onBack.run());
         topPanel.add(backButton);
         add(topPanel, BorderLayout.NORTH);
 
@@ -99,7 +102,30 @@ public class MapPanel extends JPanel {
         waypointPainter.setWaypoints(busStops);
 
         Bus mockBus = new Bus("A104", new BusLine("2", "Linia na dworzec"), "Dworzec PKP", 4, new GPSCoordinates(50.8687, 20.6286), "W Trasie");
+
+        mockBus.getLine().attach(message -> {
+            JOptionPane.showMessageDialog(MapPanel.this, message, "System Ostrzegania Pasażerów", JOptionPane.WARNING_MESSAGE);
+        });
+
         busPainter = new BusWaypointPainter(Color.ORANGE, busIcon, mapViewer, new BusWaypoint(mockBus, new GeoPosition(50.8687, 20.6286)));
+
+        JButton simulateAccidentBtn = new JButton("Symuluj Wypadek");
+        simulateAccidentBtn.setBackground(Color.RED);
+        simulateAccidentBtn.setForeground(Color.WHITE);
+        simulateAccidentBtn.addActionListener(e -> {
+            Bus bus = busPainter.getWaypoint().getBus();
+            if (bus != null) {
+                bus.setDelayMinutes(bus.getDelayMinutes() + 15);
+                bus.getLine().broadcastMessage("Wypadek na trasie! Autobus Linii " + bus.getLine().getLineNumber() + " zyskał dodatkowe 15 minut opóźnienia.");
+            }
+        });
+        topPanel.add(simulateAccidentBtn);
+
+        backButton.addActionListener(e -> {
+            if (trackingTimer != null) trackingTimer.stop();
+            if (busPainter != null) busPainter.stopTimer();
+            onBack.run();
+        });
 
         List<GeoPosition> routeStops = new ArrayList<>();
         for(int i=0; i<dbStops.size(); i++) {
@@ -121,6 +147,13 @@ public class MapPanel extends JPanel {
         CompoundPainter<JXMapViewer> mainPainter = new CompoundPainter<>(new RoutePainter(selectedRoute), waypointPainter, busPainter);
         mapViewer.setOverlayPainter(mainPainter);
 
+        trackingTimer = new Timer(500, e -> {
+            if (sidePanel.isVisible() && currentTrackedBus != null) {
+                showBusDetailsInSidePanel(currentTrackedBus);
+            }
+        });
+        trackingTimer.start();
+
         PanMouseInputListener panListener = new PanMouseInputListener(mapViewer) {
             public ArrayList<GeoPosition> points = new ArrayList<>();
 
@@ -137,7 +170,8 @@ public class MapPanel extends JPanel {
                     Point2D busP = mapViewer.getTileFactory().geoToPixel(busPainter.getWaypoint().getPosition(), mapViewer.getZoom());
                     Point busPoint = new Point((int) (busP.getX() - bounds.getX()), (int) (busP.getY() - bounds.getY()));
                     if (clickPoint.distance(busPoint) <= 20) {
-                        showBusDetailsInSidePanel(busPainter.getWaypoint().getBus());
+                        currentTrackedBus = busPainter.getWaypoint().getBus();
+                        showBusDetailsInSidePanel(currentTrackedBus);
                         return;
                     }
 
@@ -147,6 +181,7 @@ public class MapPanel extends JPanel {
                         Point stopPoint = new Point((int) (p.getX() - bounds.getX()), (int) (p.getY() - bounds.getY()));
                         // jak jest <= 15 pikseli to wyswietla
                         if (clickPoint.distance(stopPoint) <= 15) {
+                            currentTrackedBus = null;
                             showScheduleInSidePanel(w.getBusStop());
                             stopClicked = true;
                             break;
@@ -254,6 +289,7 @@ public class MapPanel extends JPanel {
         closeButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         closeButton.setFocusPainted(false);
         closeButton.addActionListener(e -> {
+            currentTrackedBus = null;
             sidePanel.setVisible(false);
             revalidate();
             repaint();
@@ -318,7 +354,36 @@ public class MapPanel extends JPanel {
         } else {
             sb.append("Jedzie punktualnie\n");
         }
-                
+        sb.append("\nPrzewidywany czas dojazdu:\n");
+        DepartureDao depDao = new DepartureDao();
+        List<Departure> allDeps = depDao.findAll();
+
+        List<Departure> lineDeps = allDeps.stream()
+                .filter(d -> d.getLine() != null && d.getLine().getLineNumber().equals(bus.getLine().getLineNumber()))
+                .sorted((d1, d2) -> d1.getDepartureTime().compareTo(d2.getDepartureTime()))
+                .collect(Collectors.toList());
+
+        GeoPosition busPos = busPainter.getWaypoint().getPosition();
+        int closestIndex = 0;
+        double minDistance = Double.MAX_VALUE;
+        
+        for (int i = 0; i < lineDeps.size(); i++) {
+            BusStop stop = lineDeps.get(i).getBusStop();
+            double dist = Math.pow(busPos.getLatitude() - stop.getLocation().getLatitude(), 2) +
+                          Math.pow(busPos.getLongitude() - stop.getLocation().getLongitude(), 2);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestIndex = i;
+            }
+        }
+
+        lineDeps.stream()
+                .skip(closestIndex)
+                .limit(4)
+                .forEach(d -> {
+                    java.time.LocalTime eta = d.getDepartureTime().plusMinutes(bus.getDelayMinutes());
+                    sb.append(" - ").append(d.getBusStop().getName()).append(": ").append(eta).append("\n");
+                });
         scheduleArea.setText(sb.toString());
         
         if (!sidePanel.isVisible()) {
