@@ -11,19 +11,22 @@ public class BusStopDao {
     public void save(BusStop busStop) {
         EntityManager em = HibernateUtil.getEntityManager();
         EntityTransaction transaction = em.getTransaction();
+
         try {
             transaction.begin();
+
             if (busStop.getId() == 0) {
                 em.persist(busStop);
             } else {
                 em.merge(busStop);
             }
+
             transaction.commit();
         } catch (Exception e) {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
-            e.printStackTrace();
+            System.err.println("Błąd podczas zapisywania przystanku: " + e.getMessage());
         } finally {
             em.close();
         }
@@ -31,6 +34,7 @@ public class BusStopDao {
 
     public BusStop findById(int id) {
         EntityManager em = HibernateUtil.getEntityManager();
+
         try {
             return em.find(BusStop.class, id);
         } finally {
@@ -40,8 +44,35 @@ public class BusStopDao {
 
     public List<BusStop> findAll() {
         EntityManager em = HibernateUtil.getEntityManager();
+
         try {
-            return em.createQuery("SELECT b FROM BusStop b", BusStop.class).getResultList();
+            return em.createQuery(
+                    "SELECT b FROM BusStop b ORDER BY b.name",
+                    BusStop.class
+            ).getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    public void delete(int id) {
+        EntityManager em = HibernateUtil.getEntityManager();
+        EntityTransaction transaction = em.getTransaction();
+
+        try {
+            transaction.begin();
+
+            BusStop busStop = em.find(BusStop.class, id);
+            if (busStop != null) {
+                em.remove(busStop);
+            }
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            System.err.println("Błąd podczas usuwania przystanku: " + e.getMessage());
         } finally {
             em.close();
         }

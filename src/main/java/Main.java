@@ -8,6 +8,7 @@ import org.mpk.panels.LoginPanel;
 import org.mpk.panels.MapPanel;
 import org.mpk.panels.MenuPanel;
 import org.mpk.panels.SchedulePanel;
+import org.mpk.panels.AdminPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -121,7 +122,7 @@ public class Main {
 
             @Override
             public void onOpenAdminPanel() {
-                JOptionPane.showMessageDialog(mainWindow, "Admin");
+                showPanel(new AdminPanel(() -> showMenuPanel(user)));
             }
 
             @Override
