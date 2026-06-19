@@ -139,6 +139,7 @@ public class MapPanel extends JPanel {
         try {
             JSONArray routeJson = Osrm.getRoutePointsJSON(routeStops);
             JSONArray speedsJson = Osrm.getRouteSpeedsArray();
+            selectedRoute = routeJson; // trasa
             busPainter.moveTo(routeJson, speedsJson);
         } catch (Exception e) {
             e.printStackTrace();
