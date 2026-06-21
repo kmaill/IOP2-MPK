@@ -38,14 +38,15 @@ class MapCompositeTest {
     @Test
     void testMapRenderBus() {
         GPSCoordinates gps = new GPSCoordinates(51.0, 21.0);
-        Bus bus = new Bus(gps, "On Time");
+        BusLine mockLine = new BusLine("1", "Mock Line");
+        Bus bus = new Bus("123", mockLine, "Destination", 0, gps, "On Time");
         Map map = new Map(null);
 
         map.render(bus);
 
         String output = outContent.toString();
-        assertTrue(output.contains("Bus: On Time"));
-        assertTrue(output.contains("51.0"));
+        assertTrue(output.contains("Bus 123"));
+        assertTrue(output.contains("Destination"));
     }
 
     @Test
