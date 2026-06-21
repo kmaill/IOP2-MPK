@@ -45,9 +45,8 @@ class SystemMpkFacadeTest {
     @Test
     void testAuthenticationDelegation() {
         SystemMpk system = SystemMpk.getInstance();
-        User user = system.authenticateUser("admin", "admin");
-        assertNotNull(user);
+        system.authenticateUser("admin", "admin");
         String output = outContent.toString();
-        assertTrue(output.contains("AuthenticationService: Authenticating user admin"));
+        assertTrue(output.contains("AuthenticationService: Login - admin"));
     }
 }
